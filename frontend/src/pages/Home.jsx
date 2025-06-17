@@ -1,5 +1,6 @@
 import MovieCard from "../components/MovieCard"
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import { searchMovies, getPopularMovies } from "../services/api"
 import "../css/Home.css"
 
@@ -11,13 +12,17 @@ function Home() {
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
+    const location = useLocation()
 
     useEffect(() => {
         const loadPopularMovies = async () => {
             try {
-                const data = await getPopularMovies(currentPage)
+                const data = await getPopularMovies(1)
                 setMovies(data.results)
                 setTotalPages(data.total_pages)
+                setSearchQuery("")
+                setCurrentPage(1)
+                setError(null)
             } catch (err) {
                 console.log(err)
                 setError("Failed to load movies...")
@@ -27,7 +32,7 @@ function Home() {
             }
         }
         loadPopularMovies()
-    }, [currentPage])
+    }, [location])
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -88,6 +93,8 @@ function Home() {
 
             {loading ? (
                 <div className="loading">Loading...</div>
+            ) : movies.length === 0 ? (
+                <div className="no-results">No movies found.</div>
             ) : (
                 <div className="movies-grid">
                     {movies.map((movie) => (
