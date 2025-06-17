@@ -9,12 +9,15 @@ function Home() {
     const [movies, setMovies] = useState([])
     const [error, setError] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
 
     useEffect(() => {
         const loadPopularMovies = async () => {
             try {
-                const popularMovies = await getPopularMovies()
-                setMovies(popularMovies)
+                const data = await getPopularMovies(currentPage)
+                setMovies(data.results)
+                setTotalPages(data.total_pages)
             } catch (err) {
                 console.log(err)
                 setError("Failed to load movies...")
@@ -23,9 +26,8 @@ function Home() {
                 setLoading(false)
             }
         }
-
         loadPopularMovies()
-    }, [])
+    }, [currentPage])
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -34,12 +36,34 @@ function Home() {
 
         setLoading(true)
         try {
-            const searchResults = await searchMovies(searchQuery)
-            setMovies(searchResults)
+            const data = await searchMovies(searchQuery, 1)
+            setMovies(data.results)
+            setTotalPages(data.total_pages)
+            setCurrentPage(1)
             setError(null)
         } catch (err) {
             console.log(err)
             setError("Failed to search movies...")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handlePageChange = async (newPage) => {
+        if (newPage < 1 || newPage > totalPages) return
+
+        setLoading(true)
+        try {
+            const data = searchQuery
+                ? await searchMovies(searchQuery, newPage)
+                : await getPopularMovies(newPage)
+
+            setMovies(data.results)
+            setCurrentPage(newPage)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+        } catch (err) {
+            console.error('Error changing page:', err)
+            setError("Failed to load page...")
         } finally {
             setLoading(false)
         }
@@ -69,6 +93,24 @@ function Home() {
                     {movies.map((movie) => (
                         <MovieCard movie={movie} key={movie.id} />
                     ))}
+                </div>
+            )}
+
+            {totalPages > 1 && (
+                <div className="pagination">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || loading}
+                    >
+                        Previous
+                    </button>
+                    <span>Page {currentPage} of {totalPages}</span>
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || loading}
+                    >
+                        Next
+                    </button>
                 </div>
             )}
         </div>
